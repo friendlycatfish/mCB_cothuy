@@ -5,7 +5,7 @@
 #include <Adafruit_ST7735.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_AHTX0.h>
-
+//cấu hình chaaan
 #define TFT_CS     5
 #define TFT_DC     2
 #define TFT_RST    4

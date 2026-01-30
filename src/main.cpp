@@ -4,8 +4,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
 #include <Adafruit_SSD1306.h>
-#include <Adafruit_AHTX0.h>
-//cấu hình chaaan
+#include <DHT.h>
+
 #define TFT_CS     5
 #define TFT_DC     2
 #define TFT_RST    4
@@ -15,9 +15,12 @@
 #define OLED_RESET    -1
 #define OLED_ADDRESS  0x3C
 
+#define DHTPIN 27
+#define DHTTYPE DHT11
+
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-Adafruit_AHTX0 aht;
+DHT dht(DHTPIN, DHTTYPE);
 
 void setup() {
   Serial.begin(115200);
@@ -33,16 +36,7 @@ void setup() {
   oled.clearDisplay();
   oled.setTextColor(SSD1306_WHITE);
 
-  if (!aht.begin()) {
-    tft.setCursor(10, 50); 
-    tft.setTextColor(ST77XX_RED); 
-    tft.print("AHT ERROR");
-    
-    oled.setCursor(0,0); 
-    oled.print("AHT ERROR"); 
-    oled.display();
-    while (1) delay(100);
-  }
+  dht.begin();
 
   tft.drawRect(0, 0, 128, 128, ST77XX_BLUE);
   tft.setCursor(30, 10);
@@ -53,8 +47,15 @@ void setup() {
 }
 
 void loop() {
-  sensors_event_t humidity, temp;
-  aht.getEvent(&humidity, &temp);
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (isnan(h) || isnan(t)) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    tft.setCursor(10, 50); tft.setTextColor(ST77XX_RED, ST77XX_BLACK); tft.print("DHT ERROR");
+    oled.setCursor(0,0); oled.clearDisplay(); oled.print("DHT ERROR"); oled.display();
+    return;
+  }
 
   tft.setCursor(10, 45);
   tft.setTextColor(ST77XX_ORANGE, ST77XX_BLACK);
@@ -64,7 +65,7 @@ void loop() {
   tft.setCursor(10, 58);
   tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
   tft.setTextSize(3);
-  tft.print(temp.temperature, 1);
+  tft.print(t, 1);
   tft.setTextSize(2);
   tft.print("C  ");
 
@@ -76,7 +77,7 @@ void loop() {
   tft.setCursor(10, 103);
   tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
   tft.setTextSize(3);
-  tft.print((int)humidity.relative_humidity);
+  tft.print((int)h);
   tft.setTextSize(2);
   tft.print("%  ");
 
@@ -92,7 +93,7 @@ void loop() {
   oled.print("TEMP");
   oled.setTextSize(2); 
   oled.setCursor(5, 35);
-  oled.print(temp.temperature, 1);
+  oled.print(t, 1);
   oled.setTextSize(1); 
   oled.cp437(true); 
   oled.write(248); 
@@ -103,7 +104,7 @@ void loop() {
   oled.print("HUMI");
   oled.setTextSize(2); 
   oled.setCursor(70, 35);
-  oled.print((int)humidity.relative_humidity); 
+  oled.print((int)h); 
   oled.print("%");
 
   oled.display();
